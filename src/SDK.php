@@ -55,7 +55,8 @@ class SDK
         // Credentials
         'username'                => null,
         'token'                   => null,
-        'environment'             => 'production',
+        'environment'             => 'WebServicesTest',
+		'endpoint' 				  => null,
 
         // Defaults
         'default_collection_size' => 20,
@@ -81,7 +82,7 @@ class SDK
         }
 
         $this->client = new Client([
-            'base_uri' => "https://api.businesscentral.dynamics.com/v2.0/$this->tenant/$this->environment/ODataV4/",
+            'base_uri' => "$this->endpoint/$this->environment/ODataV4/",
             'headers'  => [
                 'User-Agent'    => 'Business Central SDK',
                 'Authorization' => "Basic " . base64_encode("{$this->option('username')}:{$this->option('token')}"),
