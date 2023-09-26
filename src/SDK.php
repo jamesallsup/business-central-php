@@ -47,15 +47,19 @@ class SDK
 
     protected $tenant;
     protected $client;
+    protected $token_expired;
+    protected $token;
 
     protected $request_log     = [];
     protected $request_counter = 0;
+    protected  $base_uri = "https://api.businesscentral.dynamics.com";
 
     protected $options = [
         // Credentials
-        'username'                => null,
-        'token'                   => null,
         'environment'             => 'production',
+        'client_id' => null,
+        'client_secret' => null,
+        'scope' => null,
 
         // Defaults
         'default_collection_size' => 20,
@@ -72,7 +76,8 @@ class SDK
 
         $this->options = array_merge($this->options, $options);
 
-        if (!$this->option('username') || !$this->option('token')) {
+
+        if (!$this->option('client_id') || !$this->option('client_secret')) {
             throw new \RuntimeException("Missing credentials for BusinessCentral SDK");
         }
 
@@ -80,15 +85,41 @@ class SDK
             throw new \RuntimeException("Missing environment for BusinessCentral SDK");
         }
 
+        $this->getNewToken();
+
+        $this->mapEntities();
+    }
+    public function getNewToken(){
+        if(! $scope = $this->option('scope'))
+            $scope = "$this->base_uri/.default";
+
+        $test = new Client([
+            'base_uri' => "https://login.microsoftonline.com/$this->tenant/oauth2/v2.0/token",
+            'headers'  => [
+                'Content-type' => 'application/x-www-form-urlencoded'
+            ],
+        ]);
+
+        $response = $test->post('',[
+            'form_params' => [
+                'client_id' => $this->option('client_id'),
+                'client_secret' => $this->option('client_secret'),
+                'grant_type' => 'client_credentials',
+                'scope' => $scope
+            ]]);
+
+        $reponse = (json_decode($response->getBody()->getContents()));
+
+        $this->token = $reponse->access_token;
+        $this->token_expired = time() + ($reponse->expires_in - 10);
+
         $this->client = new Client([
             'base_uri' => "https://api.businesscentral.dynamics.com/v2.0/$this->tenant/$this->environment/ODataV4/",
             'headers'  => [
                 'User-Agent'    => 'Business Central SDK',
-                'Authorization' => "Basic " . base64_encode("{$this->option('username')}:{$this->option('token')}"),
+                'Authorization' => "Bearer $this->token",
             ],
         ]);
-
-        $this->mapEntities();
     }
 
     public function logRequest($method, $uri, $time, $request_options, $code, $response)
@@ -158,6 +189,9 @@ class SDK
             case 'environment':
                 return $this->option('environment');
             case 'client':
+                if($this->token_expired < time()){
+                    $this->getNewToken();
+                }
                 return $this->client;
             case 'schema':
                 return $this->schema;
