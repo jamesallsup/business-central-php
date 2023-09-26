@@ -1,6 +1,6 @@
 {
-    "name"        : "coolrunner/business-central-sdk",
-    "description" : "PHP SDK for Microsoft Business Central",
+    "name"        : "jamesallsup/business-central-sdk",
+    "description" : "PHP SDK for Microsoft Business Central. Modified for onprem.",
     "type"        : "library",
     "require"     : {
         "php"                : "^7.3 || ^8.0",
